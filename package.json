@@ -1,0 +1,20 @@
+{
+  "name": "sylvia-core",
+  "version": "0.0.1",
+  "description": "Core of Sylvia",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon src/main.js --config nodemon.json",
+    "start": "node src/main.js"
+  },
+  "author": "viandwi24",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^2.0.14"
+  },
+  "dependencies": {
+    "@halliganjs/service-container": "^1.1.1",
+    "esm": "^3.2.25",
+    "node-cron": "^3.0.0"
+  }
+}
