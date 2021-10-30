@@ -2,7 +2,8 @@ const cron = require('node-cron');
 const Log = require('../foundation/log')
 
 class Schedule {
-  constructor() {
+  constructor(app) {
+    this.app = app
     this.schedules = [];
     this.started = [];
   }
@@ -17,7 +18,7 @@ class Schedule {
   }
 
   start() {
-    Log.add('Starting Schedules')
+    this.app.command.log('Starting Schedules')
     this.schedules.forEach(schedule => {
       this.started.push(schedule.key);
       schedule.task.start();
@@ -25,7 +26,7 @@ class Schedule {
   }
 
   stop() {
-    Log.add('Stopping Schedules')
+    this.app.command.log('Stopping Schedules')
     this.schedules.forEach(schedule => {
       this.started.splice(this.started.indexOf(schedule.key), 1);
       schedule.task.stop();
@@ -33,7 +34,7 @@ class Schedule {
   }
 
   restart() {
-    Log.add('Restarting Schedules')
+    this.app.command.log('Restarting Schedules')
     this.stop();
     this.start();
   }

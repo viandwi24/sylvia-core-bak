@@ -1,55 +1,67 @@
 const { Container } = require('@halliganjs/service-container')
+const CommandApplication = require('./command')
 const Log = require('./log')
+const Schedule = require('./../schedule/schedule')
 const path = require('path')
 const fs = require('fs')
-const readline = require('readline')
-const Schedule = require('./../schedule/schedule')
 
 class Application {
-  configs = {}
+  configs = {
+    app: {
+      name: '',
+    }
+  }
   services = []
 
-  constructor() {
-    Log.add('Starting')
+  constructor(app) {
+    this.configs.app.name = app
     this.handleConsole()
     this.initContainer()
     this.initSchedule()
   }
 
   handleConsole() {
-    const command = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    })
-    command.on('line', (line) => {
-      if (line == 'stop') {
-        this.schedule.stop()
-      }
-    })
-    this.command = command
+    this.command = new CommandApplication
   }
 
   initContainer() {
-    this.container = new Container()
+    this.container = new Container
     this.container.instance('app', this)
   }
 
   initSchedule() {
-    this.schedule = new Schedule
+    this.schedule = new Schedule(this)
+    // this.schedule.add('backup-data', '* * * * * *', () => {
+    //   this.command.log('Backup data')
+    // })
   }
 
   // keep app running
   run() {
+    // Create Progess Bar
+    const pb = this.command.createProggressBar('Booting')
+    pb.on('finish', () => {
+      // 
+      this.command.log('Booting Complete')
+
+      // Start Input Mode
+      this.command.startInputMode()
+    })
+    pb.start()
+
     // Load config file
     this.loadConfigs()
+    pb.update(10)
     // Load service
     this.loadServices()
+    pb.update(75)
     // Run the schedule
     this.schedule.start()
+    pb.finish()
   }
 
   loadConfigs() {
-    Log.add('Load Config File')
+    this.command.log('Load Config File')
 
     // 
     const configPath = path.join(__dirname, '../../config')
@@ -78,7 +90,7 @@ class Application {
 
   loadServices() {
     // 
-    Log.add('Load Service File')
+    this.command.log('Load Service File')
     const servicePath = path.join(__dirname, '../../services')
     // listing all files in the services directory
     const services = fs.readdirSync(servicePath)
@@ -99,7 +111,7 @@ class Application {
           this.services.push(serviceInstanceName)
         }
       } catch (error) {
-        Log.add('Error load service: ' + service)
+        this.command.log('Error load service: ' + service)
       }
     })
 
@@ -108,8 +120,9 @@ class Application {
       const service = this.container.make(serviceName)
       try {
         service.register(this)
+        this.command.log(`Registring ${serviceName}`)
       } catch (error) {
-        Log.add(`Error register service: ${serviceName}`)
+        this.command.log(`Error register service: ${serviceName}`)
         this.services.splice(this.services.indexOf(serviceName), 1)
       }
     })
@@ -119,8 +132,9 @@ class Application {
       const service = this.container.make(serviceName)
       try {
         service.boot(this)
+        this.command.log(`Booting ${serviceName}`)
       } catch (error) {
-        Log.add(`Error boot service: "${serviceName}" ${error}`)
+        this.command.log(`Error boot service: "${serviceName}" ${error}`)
         this.services.splice(this.services.indexOf(serviceName), 1)
       }
     })
