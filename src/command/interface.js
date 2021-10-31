@@ -1,5 +1,6 @@
 const readline = require('readline')
 const figlet = require('figlet')
+const AsciiTable = require('ascii-table')
 
 class CommandInterface {
   inputMode = false
@@ -30,7 +31,6 @@ class CommandInterface {
     })
     this.commandInterface.on('line', this.handleLine.bind(this))
   }
-
 
   handleLine(input) {
     try {
@@ -117,6 +117,10 @@ class CommandInterface {
       }
     }
     return pg
+  }
+
+  createTable(name, options = {}) {
+    return new AsciiTable(name, options)
   }
 
   banner(text, instanceOptions) {

@@ -14,8 +14,22 @@ class CommandApplication {
       name: 'help',
       description: 'Show help',
       callback: function () {
+        const commandList = $this.commands.sort((a, b) => {
+          if (a.name < b.name) return -1
+          if (a.name > b.name) return 1
+          return 0
+        })
+
+        const table = $this.interface.createTable()
+          .setHeading('Command', 'Description')
+          .setAlign(['left', 'left'])
+
+        commandList.forEach(command => {
+          table.addRow(command.name, command.description)
+        })
+
         this.println('Available commands:')
-        this.println(this.commands.map(command => command.name).join(', '))
+        this.println(table.toString())
       }
     })
     this.add({
