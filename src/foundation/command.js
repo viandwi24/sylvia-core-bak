@@ -1,150 +1,99 @@
-const readline = require('readline')
-const figlet = require('figlet')
+const CommandInterface = require('./../command/interface');
 
 class CommandApplication {
-  inputMode = false
-  progressMode = false
-
   constructor() {
-    this.banner('SYLVIA')
-    this.createInterface()
-    this.addDefaultListeners()
+    this.interface = new CommandInterface(this)
+    this.handleCommandInput()
+    this.commands = []
+    this.addDefaultCommand()
   }
 
-  createInterface() {
-    this.commandInterface = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    })
-  }
-
-  addDefaultListeners() {
-    this.commandInterface.on('SIGINT', () => {
-      this.commandInterface.question('Are you sure you want to exit? (yes/no) ', answer => {
-        if (answer.match(/^y(es)?$/i)) {
-          this.commandInterface.close()
-          process.exit(0)
-        }
-      })
-    })
-    this.commandInterface.on('line', this.handleLine.bind(this))
-  }
-
-  handleLine(input) {
-    try {
-      if (this.inputMode) {
-        console.log('Input : ' + input)
-        this.startInputMode()
+  addDefaultCommand() {
+    const $this = this
+    this.add({
+      name: 'help',
+      description: 'Show help',
+      callback: function () {
+        this.println('Available commands:')
+        this.println(this.commands.map(command => command.name).join(', '))
       }
-    } catch (error) {
+    })
+    this.add({
+      name: 'exit',
+      description: 'Exit application',
+      callback: function () {
+        $this.interface.commandInterface.close()
+        process.exit(0)        
+      }
+    })
+  }
+
+  /**
+   * COMMAND
+   */
+  add(command) {
+    this.commands.push(command)
+  }
+  handleCommandInput() {
+    this.interface.listeners.push({
+      event: 'line',
+      callback: this.callbackCommandInput.bind(this)
+    })
+  }
+  callbackCommandInput(line) {
+    const lineRaw = line.split(' ')
+    const commandName = lineRaw[0]
+
+    // args
+    const args = [...lineRaw]
+    args.shift()
+
+    // options
+    const options = {}
+    args.forEach(arg => {
+      // arg with - or --
+      if (arg.startsWith('-') || arg.startsWith('--')) {
+        const option = {
+          name: arg.replace(/^-*/, '').replace(/^--*/, '').replace(/=.*$/, ''),
+          value: true
+        }
+        // check if option has value (--option=value) or not (--option value)
+        if (arg.includes('=')) {
+          option.value = arg.split('=')[1]
+        } else if (args.indexOf(arg) + 1 < args.length) {
+          option.value = args[args.indexOf(arg) + 1]
+        }
+        options[option.name] = option.value
+      }
+    })
+
+    // search
+    const command = this.commands.find(command => command.name === commandName)
+    if (command) {
+      try {
+        command.callback.call(this, args, options)
+      } catch (error) {
+        this.println(error)
+      }
+    } else {
+      this.println('command not found : ' + commandName)
     }
   }
 
   startInputMode() {
-    const { commandInterface } = this
-    this.inputMode = true
-    this.commandInterface.prompt(true)
-  }
-
-  banner(text, instanceOptions) {
-    const defaultOptions = {
-      font: 'Ghost',
-      horizontalLayout: 'default',
-      verticalLayout: 'default'
-    }
-    const result = figlet.textSync(text, Object.assign(defaultOptions, instanceOptions))
-    console.log(result)
-  }
-
-  log(text, params = null) {
-    const now = `[${new Date().toLocaleTimeString()}]`
-
-    if (this.inputMode || this.progressMode) {
-      process.stdout.clearLine();
-      process.stdout.cursorTo(0); 
-      // process.stdout.write("\r\x1b[K")
-    }
-
-    this.println(`${now} ${text}`)
-
-    if (this.inputMode) {
-      this.startInputMode()
-    }
+    this.interface.startInputMode()
   }
 
   print(text) {
-    process.stdout.write(`${text}`)
+    this.interface.print(text)
   }
 
   println(text) {
-    this.print(`${text}\n`)
+    this.interface.println(text)
   }
 
-  createProggressBar(text = '', size = 50, destroyOnComplete = true) {
-    const command = this
-    const pg = {
-      text,
-      size,
-      max: 100,
-      progress: 0,
-      interval: 50,
-      destroyOnComplete,
-      listeners: [],
-      update: function(i = undefined) {
-        if (this.isFinished()) {
-          return this.stop()
-        }
-        const newProgress = (i) ? i : (this.progress + 1)
-        const a = setInterval(() => {
-          if (this.progress >= newProgress) return clearInterval(a)
-          this.progress = this.progress + 1
-          this.draw()
-        }, this.interval)
-      },
-      dispatch: function(event) {
-        this.listeners.filter(l => l.event === event).forEach(l => l.callback.call(this))
-      },
-      draw: function() {
-        process.stdout.clearLine();
-        process.stdout.cursorTo(0);
-        const progress = Math.round((this.progress / this.max) * this.size)
-        const bar = '[' + '\u2588'.repeat(progress) + '\u2591'.repeat(this.size - progress) + '] '
-        process.stdout.write(bar)
-        process.stdout.write(`${this.text} (${this.progress}/${this.max})`)
-        if (this.isFinished()) {
-          this.destroy()
-          this.dispatch('finish')
-        }
-      },
-      finish: function() {
-        this.update(this.max)
-        this.draw()
-      },
-      reset: function() {
-        this.update(0)
-        this.draw()
-      },
-      start: function() {
-        this.update(0)
-        this.draw()
-        command.progressMode = true
-      },
-      stop: function() {
-        this.draw()
-        command.progressMode = false
-      },
-      isFinished: function() {
-        return this.progress === this.max
-      },
-      destroy: function() {
-        process.stdout.clearLine();
-        process.stdout.cursorTo(0);
-      },
-      on: function(event, callback) {
-        this.listeners.push({ event, callback })
-      }
-    }
-    return pg
+  log(text, params = undefined) {
+    this.interface.log(text, params)
   }
 }
 

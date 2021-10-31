@@ -39,11 +39,10 @@ class Application {
   // keep app running
   run() {
     // Create Progess Bar
-    const pb = this.command.createProggressBar('Booting')
+    const pb = this.command.interface.createProggressBar('Booting')
     pb.on('finish', () => {
       // 
       this.command.log('Booting Complete')
-
       // Start Input Mode
       this.command.startInputMode()
     })
@@ -136,6 +135,18 @@ class Application {
       } catch (error) {
         this.command.log(`Error boot service: "${serviceName}" ${error}`)
         this.services.splice(this.services.indexOf(serviceName), 1)
+      }
+    })
+
+    // startup the services
+    this.services.forEach(serviceName => {
+      const service = this.container.make(serviceName)
+      try {
+        if (typeof service.startup !== 'undefined') {
+          service.startup(this)
+        }
+      } catch (error) {
+        this.command.log(`Error Startup service: "${serviceName}" ${error}`)
       }
     })
   }
