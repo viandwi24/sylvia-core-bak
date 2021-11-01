@@ -1,6 +1,8 @@
 const { Container } = require('@halliganjs/service-container')
 const CommandApplication = require('./command')
+const Service = require('./service')
 const Log = require('./log')
+const merge = require('./../lib/merge')
 const Schedule = require('./../schedule/schedule')
 const path = require('path')
 const fs = require('fs')
@@ -9,9 +11,12 @@ class Application {
   configs = {
     app: {
       name: '',
+      configPath: undefined,
+      servicePath: undefined
     }
   }
   services = []
+  servicesProvider = []
 
   constructor(app) {
     this.configs.app.name = app
@@ -21,7 +26,7 @@ class Application {
   }
 
   handleConsole() {
-    this.command = new CommandApplication
+    this.command = new CommandApplication(this)
   }
 
   initContainer() {
@@ -63,7 +68,7 @@ class Application {
     this.command.log('Load Config File')
 
     // 
-    const configPath = path.join(__dirname, '../../config')
+    const configPath = this.configs.app.configPath
     
     // listing all files in the config directory
     const configs = fs.readdirSync(configPath)
@@ -77,7 +82,7 @@ class Application {
         // require the config
         const configInstance = require(path.join(configPath, config))
         // register the config
-        this.configs = Object.assign(this.configs, {
+        this.configs = merge(this.configs, {
           [configName]: configInstance
         })
       }
@@ -90,7 +95,7 @@ class Application {
   loadServices() {
     // 
     this.command.log('Load Service File')
-    const servicePath = path.join(__dirname, '../../services')
+    const servicePath = this.configs.app.servicePath
     // listing all files in the services directory
     const services = fs.readdirSync(servicePath)
     // loading each service with ext name .js
@@ -105,9 +110,9 @@ class Application {
           // instantiate the service
           const serviceInstance = new serviceClass(this)
           // register the service
-          const serviceInstanceName = `Services/${className}`
+          const serviceInstanceName = `Provider/${className}`
           this.container.instance(serviceInstanceName, serviceInstance)
-          this.services.push(serviceInstanceName)
+          this.servicesProvider.push(serviceInstanceName)
         }
       } catch (error) {
         this.command.log('Error load service: ' + service)
@@ -115,31 +120,31 @@ class Application {
     })
 
     // register the services
-    this.services.forEach(serviceName => {
+    this.servicesProvider.forEach(serviceName => {
       const service = this.container.make(serviceName)
       try {
         service.register(this)
         this.command.log(`Registring ${serviceName}`)
       } catch (error) {
         this.command.log(`Error register service: ${serviceName}`)
-        this.services.splice(this.services.indexOf(serviceName), 1)
+        this.servicesProvider.splice(this.servicesProvider.indexOf(serviceName), 1)
       }
     })
 
     // boot the services
-    this.services.forEach(serviceName => {
+    this.servicesProvider.forEach(serviceName => {
       const service = this.container.make(serviceName)
       try {
         service.boot(this)
         this.command.log(`Booting ${serviceName}`)
       } catch (error) {
         this.command.log(`Error boot service: "${serviceName}" ${error}`)
-        this.services.splice(this.services.indexOf(serviceName), 1)
+        this.servicesProvider.splice(this.servicesProvider.indexOf(serviceName), 1)
       }
     })
 
     // startup the services
-    this.services.forEach(serviceName => {
+    this.servicesProvider.forEach(serviceName => {
       const service = this.container.make(serviceName)
       try {
         if (typeof service.startup !== 'undefined') {
@@ -149,6 +154,11 @@ class Application {
         this.command.log(`Error Startup service: "${serviceName}" ${error}`)
       }
     })
+  }
+
+  registerService(options) {
+    const newService = new Service(options)
+    this.services.push(newService)
   }
 }
 

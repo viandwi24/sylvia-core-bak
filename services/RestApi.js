@@ -11,17 +11,25 @@ class RestApi {
   }
   
   register() {
-    const service = this
+    const provider = this
     this.express = initExpress()
     this.app.container.instance('express', express);
     this.app.command.add({
       name: 'restapi',
-      description: 'Starts the REST API',
-      callback: function (args, options) {
+      description: 'REST API',
+      callback: function ({ args, options }) {
         if (args[0] === 'start') {
-          service.start()
+          provider.start()
         } else if (args[0] === 'stop') {
-          service.stop()
+          provider.stop()
+        }
+      }
+    })
+    this.app.registerService({
+      name: 'restapi',
+      callback: {
+        status: function () {
+          return 'active'
         }
       }
     })
@@ -40,6 +48,7 @@ class RestApi {
       this.log(`Server Started On Port ${port}`)
     })
     this.express.use(this.logging.bind(this))
+    this.app.command.log('[REST API] Hehe...')
   }
 
   stop() {

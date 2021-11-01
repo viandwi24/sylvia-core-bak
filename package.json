@@ -4,8 +4,8 @@
   "description": "Core of Sylvia",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/main.js --config nodemon.json",
-    "start": "node src/main.js"
+    "dev": "nodemon sylvia.js --config nodemon.json",
+    "start": "node sylvia.js"
   },
   "author": "viandwi24",
   "license": "ISC",
@@ -18,6 +18,8 @@
     "esm": "^3.2.25",
     "express": "^4.17.1",
     "figlet": "^1.5.2",
+    "global": "^4.4.0",
+    "nexe": "^4.0.0-beta.19",
     "node-cron": "^3.0.0"
   }
 }

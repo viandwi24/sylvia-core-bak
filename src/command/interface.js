@@ -150,14 +150,16 @@ class CommandInterface {
     }
   }
 
-  print(text = '') {
-    if (typeof text === 'object') {
+  print(text) {
+    if (typeof text === 'undefined') {
+      text = ''
+    } else if (typeof text === 'object') {
       text = JSON.stringify(text)
     }
     process.stdout.write(`${text}`)
   }
 
-  println(text = '') {
+  println(text) {
     this.print(text)
     this.print('\n')
   }
