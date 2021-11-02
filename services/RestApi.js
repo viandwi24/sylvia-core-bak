@@ -39,6 +39,9 @@ class RestApi {
   }
 
   startup() {
+    // this.app.command.dispatch('services')
+    this.app.command.dispatch('services', ['status'])
+    // this.app.command.dispatch('services', [], { help: true })
   }
 
   start() {
