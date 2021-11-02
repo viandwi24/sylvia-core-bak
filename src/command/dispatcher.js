@@ -4,9 +4,10 @@ class CommandDispatcher {
   }
 
   dispatch(commandName, args, options) {
+    // if commandName is space or whitespace only
+    if (commandName.trim() === '') return 
     // search
     const command = this.command.commands.find(command => command.name === commandName)
-    
     // 
     if (command) {
       this.findCallback(command, args, options);
@@ -83,7 +84,8 @@ class CommandDispatcher {
         if (instance.hasCallback('default')) return instance.callbackRunner(callback.default);
 
         if (instance.hasOption('help') || instance.hasOption('h')) return instance.showHelp();
-        this.command.println(`\n  ${command.name}\n`)
+        this.command.println(`\n  ${command.name}`)
+        this.command.println(`  ${command.description}\n`)
         this.command.println(`  For Help you can use --help or -h\n`)
       } else {
         const callbackName = args[0];

@@ -45,14 +45,7 @@ class CommandApplication {
                 $this.println('Invalid argument')
               }
             }
-          },
-          // default: ({ args, options, showHelp }) => {
-          //   if (args.length === 0) {
-          //     showHelp()
-          //   } else {
-          //     $this.println('Invalid argument')
-          //   }
-          // }
+          }
         }
       },
       {

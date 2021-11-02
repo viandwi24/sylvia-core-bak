@@ -17,11 +17,14 @@ class RestApi {
     this.app.command.add({
       name: 'restapi',
       description: 'REST API',
-      callback: function ({ args, options }) {
-        if (args[0] === 'start') {
-          provider.start()
-        } else if (args[0] === 'stop') {
-          provider.stop()
+      callback: {
+        start: {
+          description: 'Start REST API',
+          handle: () => provider.start()
+        },
+        stop: {
+          description: 'Stop REST API',
+          handle: () => provider.stop()
         }
       }
     })
@@ -29,7 +32,13 @@ class RestApi {
       name: 'restapi',
       callback: {
         status: function () {
-          return 'active'
+          let server
+          try {
+            server = provider.app.container.make('express-server')
+          } catch (error) {
+            server = undefined
+          }
+          return (server) ? 'active' : 'inactive'
         }
       }
     })
@@ -39,24 +48,48 @@ class RestApi {
   }
 
   startup() {
-    // this.app.command.dispatch('services')
-    this.app.command.dispatch('services', ['status'])
+    this.app.command.dispatch('restapi', ['start'])
+    // this.app.command.dispatch('services', ['status'])
     // this.app.command.dispatch('services', [], { help: true })
   }
 
   start() {
     const port = 80
     this.app.command.log('[REST API] Starting...')
-    this.express.listen(port, () => {
-      this.log(`Server Started On Port ${port}`)
-    })
-    this.express.use(this.logging.bind(this))
-    this.app.command.log('[REST API] Hehe...')
+    this.initServer({ port })
   }
 
   stop() {
     this.app.command.log('[REST API] Stopping...')
-    this.express.close()
+    try {
+      const server = this.app.container.make('express-server')
+      server.close()
+      this.app.container.instance('express-server', undefined)
+      this.app.command.log('[REST API] Stopped')
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  initServer({ port }) {
+    this.express.use(this.logging.bind(this))
+    this.initRoutes(this.express)
+    const server = this.express.listen(port, () => {
+      this.log(`Server Started On Port ${port}`)
+    })
+    this.app.container.instance('express-server', server)
+  }
+
+  initRoutes(app) {
+    if (typeof app === 'undefined')  app = express()
+    const configs = this.app.configs
+    app.get('/', (req, res) => {
+      res.json({
+        app: {
+          name: configs.app.name
+        }
+      })
+    })
   }
 
   logging(req, res, next) {

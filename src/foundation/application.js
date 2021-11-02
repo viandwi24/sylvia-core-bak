@@ -46,8 +46,6 @@ class Application {
     // Create Progess Bar
     const pb = this.command.interface.createProggressBar('Booting')
     pb.on('finish', () => {
-      // 
-      this.command.log('Booting Complete')
       // Start Input Mode
       this.command.startInputMode()
     })
@@ -58,9 +56,24 @@ class Application {
     pb.update(10)
     // Load service
     this.loadServices()
-    pb.update(75)
+    pb.update(50)
     // Run the schedule
     this.schedule.start()
+    pb.update(75)
+    // Finish
+    this.command.log('Booting Complete')
+
+    // startup the services
+    this.servicesProvider.forEach(serviceName => {
+      const service = this.container.make(serviceName)
+      try {
+        if (typeof service.startup !== 'undefined') {
+          service.startup(this)
+        }
+      } catch (error) {
+        this.command.log(`Error Startup service: "${serviceName}" ${error}`)
+      }
+    })
     pb.finish()
   }
 
@@ -116,6 +129,7 @@ class Application {
         }
       } catch (error) {
         this.command.log('Error load service: ' + service)
+        console.error(error)
       }
     })
 
@@ -140,18 +154,6 @@ class Application {
       } catch (error) {
         this.command.log(`Error boot service: "${serviceName}" ${error}`)
         this.servicesProvider.splice(this.servicesProvider.indexOf(serviceName), 1)
-      }
-    })
-
-    // startup the services
-    this.servicesProvider.forEach(serviceName => {
-      const service = this.container.make(serviceName)
-      try {
-        if (typeof service.startup !== 'undefined') {
-          service.startup(this)
-        }
-      } catch (error) {
-        this.command.log(`Error Startup service: "${serviceName}" ${error}`)
       }
     })
   }
