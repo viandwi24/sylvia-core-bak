@@ -143,7 +143,8 @@ class CommandInterface {
       // process.stdout.write("\r\x1b[K")
     }
 
-    this.println(`${now} ${text}`)
+    this.print(`${now} `)
+    this.println(text)
 
     if (this.inputMode) {
       this.startInputMode()

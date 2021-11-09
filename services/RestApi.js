@@ -8,6 +8,7 @@ function initExpress() {
 class RestApi {
   constructor(app) {
     this.app = app
+    this.registeredRoutesCallback = []
   }
   
   register() {
@@ -90,6 +91,16 @@ class RestApi {
         }
       })
     })
+    app.get('/db', (req, res) => {
+      res.json(db)
+    })
+    this.registeredRoutesCallback.forEach(route => {
+      route(app)
+    })
+  }
+
+  registerRouteCallback(route) {
+    this.registeredRoutesCallback.push(route)
   }
 
   logging(req, res, next) {

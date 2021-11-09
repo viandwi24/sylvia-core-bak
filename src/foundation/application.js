@@ -122,6 +122,7 @@ class Application {
           const serviceClass = require(path.join(servicePath, service))
           // instantiate the service
           const serviceInstance = new serviceClass(this)
+          serviceInstance['app'] = this
           // register the service
           const serviceInstanceName = `Provider/${className}`
           this.container.instance(serviceInstanceName, serviceInstance)
